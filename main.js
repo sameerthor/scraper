@@ -149,7 +149,7 @@ async function attemptCaptchaSolve(win, maxRetries = 5) {
       if (!captchaText) continue;
 
       await fillCaptchaAndSubmit(win, captchaText);
-      await sleep(1000);
+      await sleep(2000);
 
       const failed = await isCaptchaIncorrect(win);
       if (!failed) {
@@ -289,7 +289,7 @@ async function createAndProcessWindow(companyID) {
           sandbox: true,
           nodeIntegration: false
         },
-        show: false // Work in background
+   //     show: false // Work in background
       });
 
       // Error handling
