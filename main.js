@@ -193,7 +193,7 @@ async function automateMCAProcess(win, companyID) {
     // First captcha
     await attemptCaptchaSolve(win);
 
-    await sleep(1000);
+    await sleep(2000);
 
     // Click first company
     await win.webContents.executeJavaScript(`
@@ -212,7 +212,7 @@ async function automateMCAProcess(win, companyID) {
       })();
     `);
 
-    await sleep(1000);
+    await sleep(2000);
 
     // Second captcha
     await attemptCaptchaSolve(win);
