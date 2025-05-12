@@ -287,10 +287,10 @@ async function createAndProcessWindow(companyID) {
         webPreferences: {
           preload: path.join(__dirname, 'preload.js'),
           contextIsolation: true,
-          sandbox: true,
+          sandbox: false,
           nodeIntegration: false
         },
-   //     show: false // Work in background
+       show: false // Work in background
       });
       attachDebugger(win);
       // Error handling
