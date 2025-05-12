@@ -292,7 +292,7 @@ expressApp.get('/fetch-company', async (req, res) => {
 
     console.log(`🔍 Fetching data for company ID: ${companyID}`);
     const companyData = await createAndProcessWindow(companyID);
-
+console.log("d",companyData)
     if (!companyData) {
       return res.status(404).json({ 
         success: false, 
