@@ -89,7 +89,16 @@ async function fillCaptchaAndSubmit(win, captchaText) {
         }
         input.value = captcha;
         input.dispatchEvent(new Event('input', { bubbles: true }));
-        button.click();
+        
+        // Delay to simulate human behavior
+        setTimeout(() => {
+          button.click(); // Click the button first
+          
+          // Simulate hitting the 'Enter' key after a delay
+          const enterEvent = new KeyboardEvent('keydown', { keyCode: 13, bubbles: true });
+          input.dispatchEvent(enterEvent);
+        }, 1500); // Random delay between 1 and 3 seconds
+        
         return true;
       } catch (err) {
         console.error('Error in fillCaptchaAndSubmit:', err);
@@ -98,6 +107,7 @@ async function fillCaptchaAndSubmit(win, captchaText) {
     })('${captchaText}');
   `);
 }
+
 
 /**
  * Check if captcha failed
