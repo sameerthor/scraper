@@ -54,7 +54,7 @@ async function extractAndRecognizeCaptcha(win) {
       .toBuffer();
 
     const cleanPath = path.join(dirPath, `captcha_clean_${timestamp}.png`);
-    fs.writeFileSync(cleanPath, processedBuffer);
+    //fs.writeFileSync(cleanPath, processedBuffer);
     console.log('✅ Cleaned captcha saved at:', cleanPath);
 
     // OCR Processing
@@ -217,7 +217,7 @@ async function automateMCAProcess(win, companyID) {
     // Second captcha
     await attemptCaptchaSolve(win);
 
-    await sleep(1000);
+    await sleep(1500);
 
     // Extract company details
     return await win.webContents.executeJavaScript(`
