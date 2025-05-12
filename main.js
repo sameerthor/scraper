@@ -292,7 +292,7 @@ async function createAndProcessWindow(companyID) {
         },
    //     show: false // Work in background
       });
-
+      attachDebugger(win);
       // Error handling
       win.webContents.on('did-fail-load', (event, errorCode, errorDesc) => {
         reject(new Error(`Failed to load page: ${errorDesc}`));
@@ -375,3 +375,36 @@ ipcMain.on('log', (event, ...args) => {
 });
 
 
+
+// Attach debugger and log XHRs
+function attachDebugger(win) {
+  try {
+    win.webContents.debugger.attach('1.3');
+    win.webContents.debugger.sendCommand('Network.enable');
+
+    win.webContents.debugger.on('message', async (event, method, params) => {
+      if (method === 'Network.responseReceived') {
+        const { requestId, response } = params;
+        console.log('\n⬇️ Response:', response.url);
+
+        try {
+          const { body, base64Encoded } = await win.webContents.debugger.sendCommand('Network.getResponseBody', { requestId });
+          const decodedBody = base64Encoded ? Buffer.from(body, 'base64').toString() : body;
+          console.log('Body:', decodedBody.substring(0, 300));
+        } catch (err) {
+          console.error('Error getting body:', err);
+        }
+      }
+
+      if (method === 'Network.requestWillBeSent') {
+        console.log('\n➡️ Request:', params.request.url);
+        console.log('Method:', params.request.method);
+        if (params.request.postData) {
+          console.log('Post Data:', params.request.postData);
+        }
+      }
+    });
+  } catch (err) {
+    console.error('Debugger attach error:', err);
+  }
+}
