@@ -203,7 +203,7 @@ async function automateMCAProcess(win, companyID) {
     // First captcha
     await attemptCaptchaSolve(win);
 
-    await sleep(2000);
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Wait for AJAX results
 
     // Click first company
     var c_name = await win.webContents.executeJavaScript(`
