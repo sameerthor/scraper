@@ -19,7 +19,9 @@ expressApp.use(express.json());
 
 // Global window reference
 let mainWindow;
-
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-software-rasterizer');
+app.commandLine.appendSwitch('disable-dev-shm-usage');
 /**
  * Extract and recognize captcha from window
  */
@@ -290,8 +292,23 @@ async function createAndProcessWindow(companyID) {
           sandbox: false,
           nodeIntegration: false
         },
-       show: false // Work in background
+       show: false, // Work in background
+       webgl: false,
+       backgroundThrottling: false,
+       disableBlinkFeatures: 'AutomationControlled'
       });
+      
+      await win.loadURL('https://www.mca.gov.in/content/mca/global/en/mca/master-data/MDS.html', {
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      });
+      
+      // Remove Electron/navigator.webdriver flags
+      await win.webContents.executeJavaScript(`
+        Object.defineProperty(navigator, 'webdriver', { get: () => false });
+        window.navigator.chrome = { runtime: {}, etc: {} };
+        Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
+      `);
+
       attachDebugger(win);
       // Error handling
       win.webContents.on('did-fail-load', (event, errorCode, errorDesc) => {
