@@ -210,6 +210,7 @@ async function automateMCAProcess(win, companyID) {
       (function() {
         try {
           const firstCompany = document.querySelector('td.companyname');
+          window.myLogger.log("first company", firstCompany);
           if (firstCompany) {
             firstCompany.click();
             return firstCompany.innerText.trim();
@@ -221,7 +222,7 @@ async function automateMCAProcess(win, companyID) {
         }
       })();
     `);
-console.log(c_name);
+console.log("company_name",c_name);
     await sleep(2000);
 
     // Second captcha
