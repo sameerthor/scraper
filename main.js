@@ -223,13 +223,11 @@ async function automateMCAProcess(win, companyID) {
     return await win.webContents.executeJavaScript(`
       (function() {
         try {
-        console.log("test")
-        console.log('SessionStorage Keys:', Object.keys(sessionStorage));
-
+          window.myLogger.log("SessionStorage Keys:", Object.keys(sessionStorage));
           const details = sessionStorage.getItem("companyDetails");
           return details ? JSON.parse(details) : null;
         } catch (err) {
-          console.error("Error reading sessionStorage:", err);
+          window.myLogger.log("Error reading sessionStorage:", err);
           return null;
         }
       })();

@@ -1,6 +1,5 @@
-const log = (...args) => require('electron').ipcRenderer.send('log', ...args);
+const { contextBridge, ipcRenderer } = require('electron');
 
-window.addEventListener('DOMContentLoaded', () => {
-  log('SessionStorage Keys:', Object.keys(sessionStorage));
-  log('Company Details:', sessionStorage.getItem('companyDetails'));
+contextBridge.exposeInMainWorld('myLogger', {
+  log: (...args) => ipcRenderer.send('log', ...args)
 });
