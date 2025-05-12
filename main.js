@@ -260,7 +260,7 @@ console.log("company_name",c_name);
           window.myLogger.log("SessionStorage Keys:", Object.keys(sessionStorage));
            const pageHTML = document.documentElement.outerHTML;
      // window.myLogger.log("Page HTML:", pageHTML);
-       window.myLogger.log("Page HTML:", curentTarget);
+       window.myLogger.log("Page HTML:",essionStorage.getItem("curentTarget") );
           const details = sessionStorage.getItem("companyDetails");
           return details ? JSON.parse(details) : null;
         } catch (err) {
@@ -373,3 +373,5 @@ process.on('uncaughtException', (error) => {
 ipcMain.on('log', (event, ...args) => {
   console.log('[Renderer Log]:', ...args);
 });
+
+
