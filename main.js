@@ -206,7 +206,7 @@ async function automateMCAProcess(win, companyID) {
     await sleep(2000);
 
     // Click first company
-    await win.webContents.executeJavaScript(`
+    var c_name=await win.webContents.executeJavaScript(`
       (function() {
         try {
           const firstCompany = document.querySelector('td.companyname');
@@ -221,7 +221,7 @@ async function automateMCAProcess(win, companyID) {
         }
       })();
     `);
-
+console.log(c_name);
     await sleep(2000);
 
     // Second captcha
@@ -235,7 +235,7 @@ async function automateMCAProcess(win, companyID) {
         try {
           window.myLogger.log("SessionStorage Keys:", Object.keys(sessionStorage));
            const pageHTML = document.documentElement.outerHTML;
-      window.myLogger.log("Page HTML:", pageHTML);
+   //   window.myLogger.log("Page HTML:", pageHTML);
           const details = sessionStorage.getItem("companyDetails");
           return details ? JSON.parse(details) : null;
         } catch (err) {
