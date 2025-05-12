@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow,ipcMain } = require('electron');
 const { createWorker } = require('tesseract.js');
 const path = require('path');
 const fs = require('fs');
@@ -333,4 +333,8 @@ process.on('unhandledRejection', (error) => {
 
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
+});
+
+ipcMain.on('log', (event, ...args) => {
+  console.log('[Renderer Log]:', ...args);
 });
