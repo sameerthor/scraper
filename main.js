@@ -206,22 +206,45 @@ async function automateMCAProcess(win, companyID) {
     await sleep(2000);
 
     // Click first company
-    var c_name=await win.webContents.executeJavaScript(`
+    var c_name = await win.webContents.executeJavaScript(`
       (function() {
         try {
-          const firstCompany = document.querySelector('td.companyname');
-          window.myLogger.log("first company", firstCompany);
-          if (firstCompany) {
-            firstCompany.click();
-            return firstCompany.innerText.trim();
-          }
-          throw new Error('No company name found to click');
+          // Wait for the element to be available (adjust timeout as necessary)
+          const waitForElement = (selector, timeout = 10000) => {
+            return new Promise((resolve, reject) => {
+              const interval = setInterval(() => {
+                const element = document.querySelector(selector);
+                if (element) {
+                  clearInterval(interval);
+                  resolve(element);
+                }
+              }, 100);
+              setTimeout(() => {
+                clearInterval(interval);
+                reject(new Error('Element not found within the timeout'));
+              }, timeout);
+            });
+          };
+    
+          // Wait for the element to appear
+          return waitForElement('td.companyname').then((firstCompany) => {
+            if (firstCompany) {
+              firstCompany.click();
+              return firstCompany.innerText.trim();
+            }
+            throw new Error('No company name found to click');
+          }).catch((err) => {
+            console.error('Error clicking company name:', err);
+            return null;
+          });
+    
         } catch (err) {
-          console.error('Error clicking company name:', err);
+          console.error('Error in script execution:', err);
           return null;
         }
       })();
     `);
+    
 console.log("company_name",c_name);
     await sleep(2000);
 
