@@ -259,7 +259,7 @@ console.log("company_name",c_name);
         try {
           window.myLogger.log("SessionStorage Keys:", Object.keys(sessionStorage));
            const pageHTML = document.documentElement.outerHTML;
-   //   window.myLogger.log("Page HTML:", pageHTML);
+      window.myLogger.log("Page HTML:", pageHTML);
           const details = sessionStorage.getItem("companyDetails");
           return details ? JSON.parse(details) : null;
         } catch (err) {
