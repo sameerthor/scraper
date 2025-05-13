@@ -312,7 +312,7 @@ async function createAndProcessWindow(companyID) {
       // Load target URL
       await win.loadURL('https://www.mca.gov.in/content/mca/global/en/mca/master-data/MDS.html');
       console.log('✅ Page loaded successfully');
-
+      await sleep(1500);
       // Process the page
       const result = await automateMCAProcess(win, companyID);
       
@@ -361,18 +361,18 @@ console.log("d",companyData)
 
 // Start the application
 app.whenReady().then(async() => {
-  await session.defaultSession.setProxy({
-    proxyRules: 'http=154.17.163.59:5485;https=154.17.163.59:5485',
-    proxyBypassRules: '<-loopback>',
-  });
+  // await session.defaultSession.setProxy({
+  //   proxyRules: 'http=154.17.163.59:5485;https=154.17.163.59:5485',
+  //   proxyBypassRules: '<-loopback>',
+  // });
 
-  // Listen for proxy auth
-  app.on('login', (event, webContents, request, authInfo, callback) => {
-    if (authInfo.isProxy) {
-      event.preventDefault();
-      callback('earihumh', '7eafuflyhpsu'); // username, password
-    }
-  });
+  // // Listen for proxy auth
+  // app.on('login', (event, webContents, request, authInfo, callback) => {
+  //   if (authInfo.isProxy) {
+  //     event.preventDefault();
+  //     callback('earihumh', '7eafuflyhpsu'); // username, password
+  //   }
+  // });
   expressApp.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`🔗 Endpoint: GET /fetch-company?id=COMPANY_ID`);
