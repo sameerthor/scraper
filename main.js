@@ -161,6 +161,8 @@ async function attemptCaptchaSolve(win, maxRetries = 5) {
 
       console.log('❌ Captcha incorrect. Refreshing...');
       await refreshCaptcha(win);
+      await sleep(1000);
+
     } catch (error) {
       console.error(`Attempt ${attempt} failed:`, error);
     }
