@@ -1,4 +1,4 @@
-const { app, BrowserWindow,ipcMain } = require('electron');
+const { app, BrowserWindow,ipcMain,session } = require('electron');
 const { createWorker } = require('tesseract.js');
 const path = require('path');
 const fs = require('fs');
@@ -283,6 +283,9 @@ console.log("company_name",c_name);
 async function createAndProcessWindow(companyID) {
   return new Promise(async (resolve, reject) => {
     try {
+
+  
+
       const win = new BrowserWindow({
         width: 1200,
         height: 800,
@@ -292,24 +295,15 @@ async function createAndProcessWindow(companyID) {
           sandbox: false,
           nodeIntegration: false
         },
-       show: false, // Work in background
+       show: true, // Work in background
        webgl: false,
        backgroundThrottling: false,
        disableBlinkFeatures: 'AutomationControlled'
       });
       
-      await win.loadURL('https://www.mca.gov.in/content/mca/global/en/mca/master-data/MDS.html', {
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      });
-      
-      // Remove Electron/navigator.webdriver flags
-      await win.webContents.executeJavaScript(`
-        Object.defineProperty(navigator, 'webdriver', { get: () => false });
-        window.navigator.chrome = { runtime: {}, etc: {} };
-        Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
-      `);
+   
 
-      attachDebugger(win);
+     // attachDebugger(win);
       // Error handling
       win.webContents.on('did-fail-load', (event, errorCode, errorDesc) => {
         reject(new Error(`Failed to load page: ${errorDesc}`));
@@ -366,7 +360,19 @@ console.log("d",companyData)
 });
 
 // Start the application
-app.whenReady().then(() => {
+app.whenReady().then(async() => {
+  await session.defaultSession.setProxy({
+    proxyRules: 'http=154.17.163.59:5485;https=154.17.163.59:5485',
+    proxyBypassRules: '<-loopback>',
+  });
+
+  // Listen for proxy auth
+  app.on('login', (event, webContents, request, authInfo, callback) => {
+    if (authInfo.isProxy) {
+      event.preventDefault();
+      callback('earihumh', '7eafuflyhpsu'); // username, password
+    }
+  });
   expressApp.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`🔗 Endpoint: GET /fetch-company?id=COMPANY_ID`);
