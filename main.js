@@ -361,18 +361,18 @@ console.log("d",companyData)
 
 // Start the application
 app.whenReady().then(async() => {
-  // await session.defaultSession.setProxy({
-  //   proxyRules: 'http=154.17.163.59:5485;https=154.17.163.59:5485',
-  //   proxyBypassRules: '<-loopback>',
-  // });
+  await session.defaultSession.setProxy({
+    proxyRules: 'http=154.17.163.59:5485;https=154.17.163.59:5485',
+    proxyBypassRules: '<-loopback>',
+  });
 
-  // // Listen for proxy auth
-  // app.on('login', (event, webContents, request, authInfo, callback) => {
-  //   if (authInfo.isProxy) {
-  //     event.preventDefault();
-  //     callback('earihumh', '7eafuflyhpsu'); // username, password
-  //   }
-  // });
+  // Listen for proxy auth
+  app.on('login', (event, webContents, request, authInfo, callback) => {
+    if (authInfo.isProxy) {
+      event.preventDefault();
+      callback('earihumh', '7eafuflyhpsu'); // username, password
+    }
+  });
   expressApp.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`🔗 Endpoint: GET /fetch-company?id=COMPANY_ID`);
