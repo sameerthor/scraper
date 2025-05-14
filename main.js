@@ -319,7 +319,7 @@ async function createAndProcessWindow(companyID) {
       const result = await automateMCAProcess(win, companyID);
       
       // Clean up
- //     win.destroy();
+     win.destroy();
       resolve(result);
     } catch (error) {
       reject(error);
