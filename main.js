@@ -52,6 +52,7 @@ async function extractAndRecognizeCaptcha(win) {
     // Process image for better OCR
     const processedBuffer = await sharp(imageBuffer)
       .grayscale()
+      .normalize()
       .threshold(150)
       .toBuffer();
 
@@ -322,6 +323,7 @@ async function createAndProcessWindow(companyID) {
      win.destroy();
       resolve(result);
     } catch (error) {
+      win.destroy();
       reject(error);
     }
   });
