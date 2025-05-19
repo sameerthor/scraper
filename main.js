@@ -1,30 +1,24 @@
-const { app, BrowserWindow,ipcMain,session } = require('electron');
+const { app, BrowserWindow, ipcMain, session } = require('electron');
 const { createWorker } = require('tesseract.js');
 const path = require('path');
 const fs = require('fs');
 const sharp = require('sharp');
 const express = require('express');
 
-// Configuration
 const dirPath = 'G:/electron';
 if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
 const PORT = 3000;
 
-// Utility function
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-// Express Server Setup
 const expressApp = express();
 expressApp.use(express.json());
 
-// Global window reference
 let mainWindow;
 app.commandLine.appendSwitch('disable-gpu');
 app.commandLine.appendSwitch('disable-software-rasterizer');
 app.commandLine.appendSwitch('disable-dev-shm-usage');
-/**
- * Extract and recognize captcha from window
- */
+
 async function extractAndRecognizeCaptcha(win) {
   try {
     const base64Image = await win.webContents.executeJavaScript(`
@@ -33,7 +27,7 @@ async function extractAndRecognizeCaptcha(win) {
           const canvas = document.getElementById('captchaCanvas');
           return canvas ? canvas.toDataURL('image/png') : null;
         } catch (err) {
-          console.error('❌ Error accessing captcha canvas:', err);
+          console.error('Error accessing captcha canvas:', err);
           return null;
         }
       })();
@@ -43,24 +37,13 @@ async function extractAndRecognizeCaptcha(win) {
 
     const timestamp = Date.now();
     const imageBuffer = Buffer.from(base64Image.split(',')[1], 'base64');
-    
-    // Save raw image for debugging
-    const rawPath = path.join(dirPath, `captcha_raw_${timestamp}.png`);
-    //fs.writeFileSync(rawPath, imageBuffer);
-    console.log('✅ Raw captcha saved at:', rawPath);
 
-    // Process image for better OCR
     const processedBuffer = await sharp(imageBuffer)
       .grayscale()
       .normalize()
       .threshold(150)
       .toBuffer();
 
-    const cleanPath = path.join(dirPath, `captcha_clean_${timestamp}.png`);
-    //fs.writeFileSync(cleanPath, processedBuffer);
-    console.log('✅ Cleaned captcha saved at:', cleanPath);
-
-    // OCR Processing
     const worker = await createWorker('eng', 1);
     await worker.setParameters({
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
@@ -69,68 +52,47 @@ async function extractAndRecognizeCaptcha(win) {
     const { data: { text } } = await worker.recognize(processedBuffer);
     await worker.terminate();
 
-    const captchaText = text.trim();
-    console.log('🔍 OCR Result:', captchaText);
-    return captchaText;
+    return text.trim();
   } catch (error) {
-    console.error('❌ Error in extractAndRecognizeCaptcha:', error);
+    console.error('Captcha recognition failed:', error);
     throw error;
   }
 }
 
-/**
- * Fill captcha and submit form
- */
 async function fillCaptchaAndSubmit(win, captchaText) {
   return win.webContents.executeJavaScript(`
     (function(captcha) {
       try {
         const input = document.getElementById('customCaptchaInput');
         const button = document.getElementById('check');
-        if (!input || !button) {
-          throw new Error('Captcha input or check button not found');
-        }
+        if (!input || !button) throw new Error('Captcha input or button missing');
         input.value = captcha;
         input.dispatchEvent(new Event('input', { bubbles: true }));
-        
-        // Delay to simulate human behavior
         setTimeout(() => {
-          button.click(); // Click the button first
-          
-          // Simulate hitting the 'Enter' key after a delay
-          const enterEvent = new KeyboardEvent('keydown', { keyCode: 13, bubbles: true });
-          input.dispatchEvent(enterEvent);
-        }, 1500); // Random delay between 1 and 3 seconds
-        
+          button.click();
+          input.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 13, bubbles: true }));
+        }, 1500);
         return true;
       } catch (err) {
-        console.error('Error in fillCaptchaAndSubmit:', err);
+        console.error('Captcha fill error:', err);
         return false;
       }
     })('${captchaText}');
   `);
 }
 
-
-/**
- * Check if captcha failed
- */
 async function isCaptchaIncorrect(win) {
   return win.webContents.executeJavaScript(`
     (function() {
       try {
         return document.body.innerText.includes("The captcha entered is incorrect");
       } catch (e) {
-        console.error("Error checking captcha text:", e);
         return false;
       }
     })();
   `);
 }
 
-/**
- * Refresh captcha
- */
 async function refreshCaptcha(win) {
   await win.webContents.executeJavaScript(`
     (function() {
@@ -138,300 +100,145 @@ async function refreshCaptcha(win) {
       if (refresh) refresh.click();
     })();
   `);
-  await sleep(1000); // Wait for new captcha to load
+  await sleep(1000);
 }
 
-/**
- * Attempt to solve captcha with retries
- */
 async function attemptCaptchaSolve(win, maxRetries = 5) {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    console.log(`🔁 Attempt ${attempt} to solve captcha...`);
+  for (let i = 0; i < maxRetries; i++) {
     try {
-      const captchaText = await extractAndRecognizeCaptcha(win);
-      if (!captchaText) continue;
-
-      await fillCaptchaAndSubmit(win, captchaText);
+      const text = await extractAndRecognizeCaptcha(win);
+      if (!text) continue;
+      await fillCaptchaAndSubmit(win, text);
       await sleep(2000);
-
-      const failed = await isCaptchaIncorrect(win);
-      if (!failed) {
-        console.log('✅ Captcha accepted.');
-        return true;
-      }
-
-      console.log('❌ Captcha incorrect. Refreshing...');
+      if (!(await isCaptchaIncorrect(win))) return true;
       await refreshCaptcha(win);
       await sleep(1000);
-
-    } catch (error) {
-      console.error(`Attempt ${attempt} failed:`, error);
+    } catch (e) {
+      console.error(`Captcha attempt ${i + 1} failed:`, e);
     }
   }
   throw new Error('All captcha attempts failed');
 }
 
-/**
- * Main automation flow
- */
 async function automateMCAProcess(win, companyID) {
   try {
-    // Fill search input
     await win.webContents.executeJavaScript(`
-      (function(companyID) {
-        try {
-          const input = document.getElementById('masterdata-search-box');
-          if (input) {
-            input.value = companyID;
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            const enterEvent = new KeyboardEvent('keydown', {
-              bubbles: true,
-              cancelable: true,
-              key: 'Enter',
-              code: 'Enter',
-              keyCode: 13,
-              which: 13
-            });
-            input.dispatchEvent(enterEvent);
-            return true;
-          }
-          return false;
-        } catch (err) {
-          console.error('Error in input fill:', err);
-          return false;
+      (function(id) {
+        const input = document.getElementById('masterdata-search-box');
+        if (input) {
+          input.value = id;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true }));
         }
       })('${companyID}');
     `);
 
     await sleep(2500);
-
-    // First captcha
     await attemptCaptchaSolve(win);
+    await sleep(2000);
 
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for AJAX results
-
-    // Click first company
-    var c_name = await win.webContents.executeJavaScript(`
-      (function() {
-        try {
-          // Wait for the element to be available (adjust timeout as necessary)
-          const waitForElement = (selector, timeout = 10000) => {
-            return new Promise((resolve, reject) => {
-              const interval = setInterval(() => {
-                const element = document.querySelector(selector);
-                if (element) {
-                  clearInterval(interval);
-                  resolve(element);
-                }
-              }, 100);
-              setTimeout(() => {
-                clearInterval(interval);
-                reject(new Error('Element not found within the timeout'));
-              }, timeout);
-            });
-          };
-    
-          // Wait for the element to appear
-          return waitForElement('td.companyname').then((firstCompany) => {
-            if (firstCompany) {
-              firstCompany.click();
-              return firstCompany.innerText.trim();
-            }
-            throw new Error('No company name found to click');
-          }).catch((err) => {
-            console.error('Error clicking company name:', err);
-            return null;
-          });
-    
-        } catch (err) {
-          console.error('Error in script execution:', err);
-          return null;
-        }
-      })();
+    const companyName = await win.webContents.executeJavaScript(`
+      new Promise((resolve) => {
+        const interval = setInterval(() => {
+          const el = document.querySelector('td.companyname');
+          if (el) {
+            clearInterval(interval);
+            el.click();
+            resolve(el.innerText.trim());
+          }
+        }, 300);
+        setTimeout(() => {
+          clearInterval(interval);
+          resolve(null);
+        }, 10000);
+      });
     `);
-    
-console.log("company_name",c_name);
-    await sleep(3000);
 
-    // Second captcha
+    await sleep(3000);
     await attemptCaptchaSolve(win);
-
     await sleep(3000);
 
-    // Extract company details
     return await win.webContents.executeJavaScript(`
       (function() {
         try {
-          window.myLogger.log("SessionStorage Keys:", Object.keys(sessionStorage));
-           const pageHTML = document.documentElement.outerHTML;
-     // window.myLogger.log("Page HTML:", pageHTML);
-       window.myLogger.log("Page HTML:",sessionStorage.getItem("curentTarget") );
-          const details = sessionStorage.getItem("companyDetails");
-          return details ? JSON.parse(details) : null;
+          const data = sessionStorage.getItem("companyDetails");
+          return data ? JSON.parse(data) : null;
         } catch (err) {
-          window.myLogger.log("Error reading sessionStorage:", err);
           return null;
         }
       })();
     `);
-  } catch (error) {
-    console.error('Automation process failed:', error);
-    throw error;
+  } catch (e) {
+    console.error('Automation failed:', e);
+    throw e;
   }
 }
 
-/**
- * Create Electron window and process data
- */
 async function createAndProcessWindow(companyID) {
   return new Promise(async (resolve, reject) => {
+    let win;
     try {
-
-  
-
-      const win = new BrowserWindow({
+      win = new BrowserWindow({
         width: 1200,
         height: 800,
+        show: true,
         webPreferences: {
           preload: path.join(__dirname, 'preload.js'),
           contextIsolation: true,
           sandbox: false,
           nodeIntegration: false
-        },
-       show: true, // Work in background
-       webgl: false,
-       backgroundThrottling: false,
-       disableBlinkFeatures: 'AutomationControlled'
-      });
-      
-   
-
-     // attachDebugger(win);
-      // Error handling
-      win.webContents.on('did-fail-load', (event, errorCode, errorDesc) => {
-        reject(new Error(`Failed to load page: ${errorDesc}`));
+        }
       });
 
-      // Load target URL
+      win.webContents.on('did-fail-load', (_, code, desc) => reject(new Error(`Load fail: ${desc}`)));
+
       await win.loadURL('https://www.mca.gov.in/content/mca/global/en/mca/master-data/MDS.html');
-      console.log('✅ Page loaded successfully');
       await sleep(1500);
-      // Process the page
       const result = await automateMCAProcess(win, companyID);
-      
-      // Clean up
-     win.destroy();
-      resolve(result);
-    } catch (error) {
       win.destroy();
-      reject(error);
+      resolve(result);
+    } catch (err) {
+      if (win) win.destroy();
+      reject(err);
     }
   });
 }
 
-// API Endpoint
 expressApp.get('/fetch-company', async (req, res) => {
   try {
-    const companyID = req.query.id;
-    if (!companyID) {
-      return res.status(400).json({ 
-        success: false, 
-        error: "Missing company ID parameter. Use ?id=YOUR_COMPANY_ID" 
-      });
-    }
-
-    console.log(`🔍 Fetching data for company ID: ${companyID}`);
-    const companyData = await createAndProcessWindow(companyID);
-console.log("d",companyData)
-    if (!companyData) {
-      return res.status(404).json({ 
-        success: false, 
-        error: "Company data not found" 
-      });
-    }
-
-    res.json({ 
-      success: true, 
-      data: companyData 
-    });
-  } catch (error) {
-    console.error('API Error:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
+    const id = req.query.id;
+    if (!id) return res.status(400).json({ success: false, error: 'Missing company ID' });
+    const data = await createAndProcessWindow(id);
+    if (!data) return res.status(404).json({ success: false, error: 'Company data not found' });
+    res.json({ success: true, data });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
   }
 });
 
-// Start the application
-app.whenReady().then(async() => {
+app.whenReady().then(async () => {
   await session.defaultSession.setProxy({
     proxyRules: 'http=154.17.163.59:5485;https=154.17.163.59:5485',
-    proxyBypassRules: '<-loopback>',
+    proxyBypassRules: '<-loopback>'
   });
 
-  // Listen for proxy auth
   app.on('login', (event, webContents, request, authInfo, callback) => {
     if (authInfo.isProxy) {
       event.preventDefault();
-      callback('earihumh', '7eafuflyhpsu'); // username, password
+      callback('earihumh', '7eafuflyhpsu');
     }
   });
+
   expressApp.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`🔗 Endpoint: GET /fetch-company?id=COMPANY_ID`);
+    console.log(`Server running at http://localhost:${PORT}`);
   });
 });
 
-// Electron app lifecycle
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-// Error handling
-process.on('unhandledRejection', (error) => {
-  console.error('Unhandled Rejection:', error);
-});
+process.on('unhandledRejection', err => console.error('Unhandled Rejection:', err));
+process.on('uncaughtException', err => console.error('Uncaught Exception:', err));
 
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-});
-
-ipcMain.on('log', (event, ...args) => {
-  console.log('[Renderer Log]:', ...args);
-});
-
-
-
-// Attach debugger and log XHRs
-function attachDebugger(win) {
-  try {
-    win.webContents.debugger.attach('1.3');
-    win.webContents.debugger.sendCommand('Network.enable');
-
-    win.webContents.debugger.on('message', async (event, method, params) => {
-      if (method === 'Network.responseReceived') {
-        const { requestId, response } = params;
-        console.log('\n⬇️ Response:', response.url);
-
-        try {
-          const { body, base64Encoded } = await win.webContents.debugger.sendCommand('Network.getResponseBody', { requestId });
-          const decodedBody = base64Encoded ? Buffer.from(body, 'base64').toString() : body;
-          console.log('Body:', decodedBody.substring(0, 300));
-        } catch (err) {
-          console.error('Error getting body:', err);
-        }
-      }
-
-      if (method === 'Network.requestWillBeSent') {
-        console.log('\n➡️ Request:', params.request.url);
-        console.log('Method:', params.request.method);
-        if (params.request.postData) {
-          console.log('Post Data:', params.request.postData);
-        }
-      }
-    });
-  } catch (err) {
-    console.error('Debugger attach error:', err);
-  }
-}
+ipcMain.on('log', (event, ...args) => console.log('[Renderer Log]:', ...args));
