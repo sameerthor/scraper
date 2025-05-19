@@ -203,7 +203,7 @@ async function automateMCAProcess(win, companyID) {
       })('${companyID}');
     `);
 
-    await sleep(1000);
+    await sleep(2500);
 
     // First captcha
     await attemptCaptchaSolve(win);
@@ -251,7 +251,7 @@ async function automateMCAProcess(win, companyID) {
     `);
     
 console.log("company_name",c_name);
-    await sleep(2000);
+    await sleep(3000);
 
     // Second captcha
     await attemptCaptchaSolve(win);
