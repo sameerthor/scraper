@@ -82,11 +82,18 @@ async function fillCaptchaAndSubmit(win, captchaText) {
 }
 
 async function isCaptchaIncorrect(win) {
-  return win.webContents.executeJavaScript(`
-    (function() {
+  return await win.webContents.executeJavaScript(`
+    (() => {
       try {
-        return document.body.innerText.includes("The captcha entered is incorrect");
+        const bodyText = document.body?.innerText || "";
+        const errorKeywords = [
+          "The captcha entered is incorrect",
+          "The captcha is expired",
+          "Please enter the captcha"
+        ];
+        return errorKeywords.some(msg => bodyText.includes(msg));
       } catch (e) {
+        console.error("Error checking captcha error:", e);
         return false;
       }
     })();
