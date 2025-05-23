@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const sharp = require('sharp');
 const express = require('express');
+const { default: axios } = require('axios');
 
 const dirPath = 'G:/electron';
 if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
