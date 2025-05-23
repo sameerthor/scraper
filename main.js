@@ -18,6 +18,9 @@ let mainWindow;
 app.commandLine.appendSwitch('disable-gpu');
 app.commandLine.appendSwitch('disable-software-rasterizer');
 app.commandLine.appendSwitch('disable-dev-shm-usage');
+app.commandLine.appendSwitch('disable-background-timer-throttling');
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
 
 async function extractAndRecognizeCaptcha(win) {
   try {
@@ -35,24 +38,26 @@ async function extractAndRecognizeCaptcha(win) {
 
     if (!base64Image) throw new Error('Captcha canvas not found');
 
-    const timestamp = Date.now();
     const imageBuffer = Buffer.from(base64Image.split(',')[1], 'base64');
 
-    const processedBuffer = await sharp(imageBuffer)
-      .grayscale()
-      .normalize()
-      .threshold(150)
-      .toBuffer();
+      const form = new FormData();
+      const imageBlob = new Blob([imageBuffer], { type: 'image/png' });
+  form.append('image', imageBlob, { filename: 'captcha.png', contentType: 'image/png' });
 
-    const worker = await createWorker('eng', 1);
-    await worker.setParameters({
-      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  try {
+    const response = await axios.post('http://173.231.203.186:5000/solve-captcha', form, {
+     headers: {
+        ...form.getHeaders?.(), // Use optional chaining to avoid errors if getHeaders is missing
+        'Content-Type': 'multipart/form-data', // Manually set Content-Type as a fallback
+      }
     });
 
-    const { data: { text } } = await worker.recognize(processedBuffer);
-    await worker.terminate();
-
-    return text.trim();
+    // console.log('Solved text:', response.data.captcha);
+    return response.data.captcha.replace(/\s/g, "").trim();
+  } catch (err) {
+    console.error('Error solving captcha:', err.response?.data || err.message);
+    return null;
+  }
   } catch (error) {
     console.error('Captcha recognition failed:', error);
     throw error;
@@ -110,7 +115,7 @@ async function refreshCaptcha(win) {
   await sleep(1000);
 }
 
-async function attemptCaptchaSolve(win, maxRetries = 5) {
+async function attemptCaptchaSolve(win, maxRetries = 10) {
   for (let i = 0; i < maxRetries; i++) {
     try {
       const text = await extractAndRecognizeCaptcha(win);
@@ -225,7 +230,7 @@ expressApp.get('/fetch-company', async (req, res) => {
 
 app.whenReady().then(async () => {
   await session.defaultSession.setProxy({
-    proxyRules: 'http=154.17.163.59:5485;https=154.17.163.59:5485',
+    proxyRules: 'http=104.238.48.37:5427;https=104.238.48.37:5427',
     proxyBypassRules: '<-loopback>'
   });
 
