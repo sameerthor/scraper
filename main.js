@@ -41,24 +41,24 @@ async function extractAndRecognizeCaptcha(win) {
 
     const imageBuffer = Buffer.from(base64Image.split(',')[1], 'base64');
 
-      const form = new FormData();
-      const imageBlob = new Blob([imageBuffer], { type: 'image/png' });
-  form.append('image', imageBlob, { filename: 'captcha.png', contentType: 'image/png' });
+    const form = new FormData();
+    const imageBlob = new Blob([imageBuffer], { type: 'image/png' });
+    form.append('image', imageBlob, { filename: 'captcha.png', contentType: 'image/png' });
 
-  try {
-    const response = await axios.post('http://173.231.203.186:5000/solve-captcha', form, {
-     headers: {
-        ...form.getHeaders?.(), // Use optional chaining to avoid errors if getHeaders is missing
-        'Content-Type': 'multipart/form-data', // Manually set Content-Type as a fallback
-      }
-    });
+    try {
+      const response = await axios.post('http://173.231.203.186:5000/solve-captcha', form, {
+        headers: {
+          ...form.getHeaders?.(), // Use optional chaining to avoid errors if getHeaders is missing
+          'Content-Type': 'multipart/form-data', // Manually set Content-Type as a fallback
+        }
+      });
 
-    // console.log('Solved text:', response.data.captcha);
-    return response.data.captcha.replace(/\s/g, "").trim();
-  } catch (err) {
-    console.error('Error solving captcha:', err.response?.data || err.message);
-    return null;
-  }
+      // console.log('Solved text:', response.data.captcha);
+      return response.data.captcha.replace(/\s/g, "").trim();
+    } catch (err) {
+      console.error('Error solving captcha:', err.response?.data || err.message);
+      return null;
+    }
   } catch (error) {
     console.error('Captcha recognition failed:', error);
     throw error;
@@ -223,7 +223,9 @@ expressApp.get('/fetch-company', async (req, res) => {
     if (!id) return res.status(400).json({ success: false, error: 'Missing company ID' });
     const data = await createAndProcessWindow(id);
     if (!data) return res.status(404).json({ success: false, error: 'Company data not found' });
-    res.json({ success: true, data });
+    res.setHeader('Connection', 'close'); // Prevent persistent issues
+    res.setHeader('Content-Type', 'application/json; charset=utf-8'); // Explicit
+    res.send(JSON.stringify({ success: true, data }));
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
