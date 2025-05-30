@@ -216,7 +216,11 @@ async function createAndProcessWindow(companyID) {
     }
   });
 }
-
+expressApp.use((req, res, next) => {
+  req.setTimeout(0);       // Disable timeout for this request
+  res.setTimeout(0);
+  next();
+});
 expressApp.get('/fetch-company', async (req, res) => {
   try {
     const id = req.query.id;
