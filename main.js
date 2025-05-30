@@ -208,8 +208,10 @@ async function createAndProcessWindow(companyID) {
       await win.loadURL('https://www.mca.gov.in/content/mca/global/en/mca/master-data/MDS.html');
       await sleep(1500);
       const result = await automateMCAProcess(win, companyID);
-      win.destroy();
+      
       resolve(result);
+       await sleep(1500);
+       win.destroy();
     } catch (err) {
       if (win) win.destroy();
       reject(err);
