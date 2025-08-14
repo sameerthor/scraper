@@ -239,7 +239,7 @@ expressApp.get('/fetch-company', async (req, res) => {
 
 app.whenReady().then(async () => {
   await session.defaultSession.setProxy({
-    proxyRules: 'http=104.252.23.87:7012;https=104.252.23.87:7012',
+    proxyRules: 'http=154.6.56.206:8174;https=154.6.56.206:8174',
     proxyBypassRules: '<-loopback>'
   });
 
