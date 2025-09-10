@@ -77,7 +77,7 @@ async function fillCaptchaAndSubmit(win, captchaText) {
         setTimeout(() => {
           button.click();
           input.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 13, bubbles: true }));
-        }, 2000);
+        }, 1500);
         return true;
       } catch (err) {
         console.error('Captcha fill error:', err);
@@ -122,7 +122,7 @@ async function attemptCaptchaSolve(win, maxRetries = 10) {
       const text = await extractAndRecognizeCaptcha(win);
       if (!text) continue;
       await fillCaptchaAndSubmit(win, text);
-      await sleep(2000);
+      await sleep(3000);
       if (!(await isCaptchaIncorrect(win))) return true;
       await refreshCaptcha(win);
       await sleep(1000);
