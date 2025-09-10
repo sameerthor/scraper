@@ -77,7 +77,7 @@ async function fillCaptchaAndSubmit(win, captchaText) {
         setTimeout(() => {
           button.click();
           input.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 13, bubbles: true }));
-        }, 1500);
+        }, 2000);
         return true;
       } catch (err) {
         console.error('Captcha fill error:', err);
