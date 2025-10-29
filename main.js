@@ -172,15 +172,24 @@ async function automateMCAProcess(win, companyID) {
     await sleep(3000);
 
     return await win.webContents.executeJavaScript(`
-      (function() {
-        try {
-          const data = sessionStorage.getItem("companyDetails");
-          return data ? JSON.parse(data) : null;
-        } catch (err) {
-          return null;
-        }
-      })();
-    `);
+  (function() {
+    try {
+      const companyDetailsRaw = sessionStorage.getItem("companyDetails");
+      const filteredDirDataRaw = sessionStorage.getItem("filteredDirData");
+
+      const companyData = companyDetailsRaw ? JSON.parse(companyDetailsRaw) : null;
+      const directorData = filteredDirDataRaw ? JSON.parse(filteredDirDataRaw) : null;
+
+      return {
+        companyData: companyData.companyData,
+        directorData
+      };
+    } catch (err) {
+      console.error("Error reading sessionStorage:", err);
+      return null
+    }
+  })();
+`);
   } catch (e) {
     console.error('Automation failed:', e);
     throw e;
@@ -208,10 +217,10 @@ async function createAndProcessWindow(companyID) {
       await win.loadURL('https://www.mca.gov.in/content/mca/global/en/mca/master-data/MDS.html');
       await sleep(1500);
       const result = await automateMCAProcess(win, companyID);
-      
+
       resolve(result);
-       await sleep(1500);
-       win.destroy();
+      await sleep(1500);
+      win.destroy();
     } catch (err) {
       if (win) win.destroy();
       reject(err);
